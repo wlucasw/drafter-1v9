@@ -3,6 +3,7 @@ import { ChampionData } from "./types";
 import { loadChampions, saveChampions } from "./store";
 import ChampionList from "./components/ChampionList";
 import ChampionEditor from "./components/ChampionEditor";
+import DraftPage from "./components/DraftPage";
 import "./App.css";
 
 type Tab = "champions" | "draft";
@@ -102,17 +103,7 @@ export default function App() {
           </>
         )}
 
-        {tab === "draft" && (
-          <div className="coming-soon">
-            <div className="coming-soon-icon">🎯</div>
-            <h2>Draft Advisor</h2>
-            <p>Coming in the next feature!</p>
-            <p className="coming-soon-sub">
-              Sélectionne les champions déjà pickés/bannis et reçois des recommandations
-              basées sur les scores meta, joueur et synergies.
-            </p>
-          </div>
-        )}
+        {tab === "draft" && <DraftPage champions={champions} />}
       </main>
     </div>
   );
