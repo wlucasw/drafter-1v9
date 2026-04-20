@@ -50,17 +50,21 @@ export type ChampionSuggestion = {
   score: ScoreBreakdown;
 };
 
+// Returns player proficiency score (0–5) for a champion at a role, given a playerScoreFn.
+// playerScoreFn is provided by the caller based on the selected team's roster.
 export function computeChampionScore(
   champion: ChampionData,
   role: Role | null,
   alliedPicks: string[],
   enemyPicks: string[],
   allChampions: ChampionData[],
-  usePlayerScore = true
+  playerScoreFn?: (championName: string, role: Role) => number
 ): ScoreBreakdown {
-  // Base: meta only for the enemy side (we don't know their player skill)
-  const roleScore = (r: { metaScore: number; playerScore: number }) =>
-    usePlayerScore ? r.metaScore + r.playerScore : r.metaScore;
+  const roleScore = (r: { metaScore: number; role: Role }) => {
+    const meta = r.metaScore;
+    const player = playerScoreFn ? playerScoreFn(champion.name, r.role) : 0;
+    return meta + player;
+  };
 
   let base = 0;
   if (role) {
@@ -123,7 +127,7 @@ export function getSuggestions(
   alliedPicks: string[],
   enemyPicks: string[],
   role: Role | null,
-  usePlayerScore = true
+  playerScoreFn?: (championName: string, role: Role) => number
 ): ChampionSuggestion[] {
   const available = allChampions.filter(
     (c) =>
@@ -135,7 +139,7 @@ export function getSuggestions(
     .map((champion) => ({
       champion,
       role,
-      score: computeChampionScore(champion, role, alliedPicks, enemyPicks, allChampions, usePlayerScore),
+      score: computeChampionScore(champion, role, alliedPicks, enemyPicks, allChampions, playerScoreFn),
     }))
     .sort((a, b) => b.score.total - a.score.total);
 }
@@ -146,7 +150,7 @@ export function computeTeamScore(
   alliedPickNames: string[],
   enemyPickNames: string[],
   allChampions: ChampionData[],
-  usePlayerScore = true
+  playerScoreFn?: (championName: string, role: Role) => number
 ): number {
   let total = 0;
   for (const i of teamSlotIndices) {
@@ -155,7 +159,7 @@ export function computeTeamScore(
     const champ = allChampions.find((c) => c.name === championName);
     if (!champ) continue;
     const allies = alliedPickNames.filter((n) => n !== championName);
-    total += computeChampionScore(champ, role, allies, enemyPickNames, allChampions, usePlayerScore).total;
+    total += computeChampionScore(champ, role, allies, enemyPickNames, allChampions, playerScoreFn).total;
   }
   return total;
 }

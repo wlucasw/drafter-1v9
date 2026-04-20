@@ -1,4 +1,4 @@
-import { ChampionData } from "./types";
+import { ChampionData, PlayerData } from "./types";
 
 export async function loadChampions(): Promise<ChampionData[]> {
   const res = await fetch('/api/champions');
@@ -12,4 +12,10 @@ export async function saveChampions(champions: ChampionData[]): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(champions),
   });
+}
+
+export async function loadPlayers(): Promise<PlayerData[]> {
+  const res = await fetch('/api/players');
+  if (!res.ok) return [];
+  return res.json();
 }

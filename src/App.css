@@ -698,6 +698,54 @@ body {
   color: var(--text-muted);
 }
 
+/* ── Team grid (setup screen) ───────────────────── */
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+.team-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s;
+}
+
+.team-card:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: rgba(200, 155, 60, 0.07);
+  transform: translateY(-2px);
+}
+
+.team-card.disabled,
+.team-card:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.team-card-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--gold-light);
+}
+
+.team-card-players {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* ── Draft Page ─────────────────────────────────── */
 
 .draft-page {

@@ -47,10 +47,6 @@ export default function ChampionList({ champions, onEdit, onDelete, onCreate }: 
                     Meta: {r.metaScore > 0 ? "+" : ""}
                     {r.metaScore}
                   </span>
-                  <span className="score" style={{ color: scoreColor(r.playerScore) }}>
-                    Player: {r.playerScore > 0 ? "+" : ""}
-                    {r.playerScore}
-                  </span>
                 </div>
               ))}
             </div>

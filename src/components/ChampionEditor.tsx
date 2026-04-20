@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ChampionData,
   Role,
-  RoleWithMetaAndPlayerScore,
   ChampionRelation,
 } from "../types";
 import ChampionSearch from "./ChampionSearch";
@@ -30,14 +29,13 @@ export default function ChampionEditor({
   onCancel,
 }: Props) {
   const [name, setName] = useState(champion.name);
-  const [roles, setRoles] = useState<RoleWithMetaAndPlayerScore[]>(champion.role);
+  const [roles, setRoles] = useState(champion.role);
   const [relations, setRelations] = useState<ChampionRelation[]>(champion.relations);
 
   // Role form state
   const [showRoleForm, setShowRoleForm] = useState(false);
   const [newRoleValue, setNewRoleValue] = useState<Role>(Role.Top);
   const [newRoleMeta, setNewRoleMeta] = useState(0);
-  const [newRolePlayer, setNewRolePlayer] = useState(0);
 
   // Relation form state
   const [showRelationForm, setShowRelationForm] = useState(false);
@@ -52,14 +50,13 @@ export default function ChampionEditor({
   const openRoleForm = () => {
     if (availableRoles.length > 0) setNewRoleValue(availableRoles[0]);
     setNewRoleMeta(0);
-    setNewRolePlayer(0);
     setShowRoleForm(true);
   };
 
   const addRole = () => {
     setRoles((prev) => [
       ...prev,
-      { role: newRoleValue, metaScore: newRoleMeta, playerScore: newRolePlayer },
+      { role: newRoleValue, metaScore: newRoleMeta },
     ]);
     setShowRoleForm(false);
   };
@@ -68,13 +65,9 @@ export default function ChampionEditor({
     setRoles((prev) => prev.filter((r) => r.role !== role));
   };
 
-  const updateRole = (
-    role: Role,
-    field: "metaScore" | "playerScore",
-    value: number
-  ) => {
+  const updateRole = (role: Role, value: number) => {
     setRoles((prev) =>
-      prev.map((r) => (r.role === role ? { ...r, [field]: value } : r))
+      prev.map((r) => (r.role === role ? { ...r, metaScore: value } : r))
     );
   };
 
@@ -166,12 +159,7 @@ export default function ChampionEditor({
                   <ScoreInput
                     label="Meta"
                     value={r.metaScore}
-                    onChange={(v) => updateRole(r.role, "metaScore", v)}
-                  />
-                  <ScoreInput
-                    label="Player"
-                    value={r.playerScore}
-                    onChange={(v) => updateRole(r.role, "playerScore", v)}
+                    onChange={(v) => updateRole(r.role, v)}
                   />
                 </div>
                 <button className="btn-remove" onClick={() => removeRole(r.role)}>
@@ -194,11 +182,6 @@ export default function ChampionEditor({
                   ))}
                 </select>
                 <ScoreInput label="Meta" value={newRoleMeta} onChange={setNewRoleMeta} />
-                <ScoreInput
-                  label="Player"
-                  value={newRolePlayer}
-                  onChange={setNewRolePlayer}
-                />
                 <button className="btn-primary btn-sm" onClick={addRole}>
                   Add
                 </button>

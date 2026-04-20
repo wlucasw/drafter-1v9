@@ -6,10 +6,9 @@ export enum Role {
   Support = "Support",
 }
 
-export type RoleWithMetaAndPlayerScore = {
+export type RoleScore = {
   role: Role;
   metaScore: number;
-  playerScore: number;
 };
 
 export type ChampionRelation = {
@@ -21,6 +20,17 @@ export type ChampionRelation = {
 
 export type ChampionData = {
   name: string;
-  role: RoleWithMetaAndPlayerScore[];
+  role: RoleScore[];
   relations: ChampionRelation[];
+};
+
+export type PlayerRole = "Top" | "Jungle" | "Mid" | "Bot" | "Support";
+
+export type PlayerData = {
+  ign: string;
+  firstName: string;
+  lastName: string;
+  role: PlayerRole;
+  teamId: string;
+  champions: [string, number][];
 };

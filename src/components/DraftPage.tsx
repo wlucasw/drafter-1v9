@@ -1,9 +1,11 @@
-import { useState, useMemo } from "react";
-import { ChampionData, Role } from "../types";
+import { useState, useMemo, useEffect } from "react";
+import { ChampionData, PlayerData, Role } from "../types";
+import { loadPlayers } from "../store";
 import {
   DRAFT_SEQUENCE,
   getSuggestions,
   computeTeamScore,
+  Team,
 } from "../draft/draftEngine";
 
 interface Props {
@@ -17,12 +19,47 @@ type SlotState = {
 
 const ROLES = Object.values(Role);
 
+const TEAM_NAMES: Record<string, string> = {
+  fnc: "Fnatic",
+  g2: "G2 Esports",
+  gx: "Giant X",
+  kc: "Karmine Corp",
+  mkoi: "Movistar KOI",
+  navi: "NAVI",
+  sft: "Shifters",
+  sk: "SK Gaming",
+  th: "Team Heretics",
+  vit: "Team Vitality",
+};
+
+function teamName(id: string): string {
+  return TEAM_NAMES[id] ?? id.toUpperCase();
+}
+
 function fmt(n: number): string {
   return (n >= 0 ? "+" : "") + n.toFixed(1);
 }
 
 function scoreClass(n: number) {
   return n > 0 ? "pos" : n < 0 ? "neg" : "";
+}
+
+// Maps Role enum (ADC) to player data role field (Bot)
+function roleToPlayerRole(role: Role): string {
+  return role === Role.ADC ? "Bot" : role;
+}
+
+// Builds a playerScoreFn for a given team's players.
+// Returns proficiency / 20 so scale matches metaScore range (~0–5).
+function makePlayerScoreFn(players: PlayerData[], teamId: string) {
+  const roster = players.filter((p) => p.teamId === teamId);
+  return (championName: string, role: Role): number => {
+    const playerRole = roleToPlayerRole(role);
+    const player = roster.find((p) => p.role === playerRole);
+    if (!player) return 0;
+    const entry = player.champions.find(([name]) => name === championName);
+    return entry ? entry[1] / 20 : 0;
+  };
 }
 
 const SLOT_INDICES = {
@@ -41,6 +78,9 @@ const SLOT_INDICES = {
 };
 
 export default function DraftPage({ champions }: Props) {
+  const [players, setPlayers] = useState<PlayerData[]>([]);
+  const [blueTeamId, setBlueTeamId] = useState<string | null>(null);
+  const [redTeamId, setRedTeamId] = useState<string | null>(null);
   const [mySide, setMySide] = useState<Team | null>(null);
   const [slots, setSlots] = useState<SlotState[]>(
     DRAFT_SEQUENCE.map(() => ({ championName: null, role: null }))
@@ -49,11 +89,29 @@ export default function DraftPage({ champions }: Props) {
   const [roleFilter, setRoleFilter] = useState<Role | null>(null);
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    loadPlayers().then(setPlayers);
+  }, []);
+
+  const teamIds = useMemo(
+    () => [...new Set(players.map((p) => p.teamId))].sort(),
+    [players]
+  );
+
+  const blueScoreFn = useMemo(
+    () => (blueTeamId ? makePlayerScoreFn(players, blueTeamId) : undefined),
+    [players, blueTeamId]
+  );
+  const redScoreFn = useMemo(
+    () => (redTeamId ? makePlayerScoreFn(players, redTeamId) : undefined),
+    [players, redTeamId]
+  );
+
   const activeDef = DRAFT_SEQUENCE[activeSlot] ?? DRAFT_SEQUENCE[19];
   const isDraftComplete = activeSlot >= DRAFT_SEQUENCE.length;
   const isOurTurn = mySide !== null && activeDef.team === mySide;
+  const activeScoreFn = activeDef.team === "blue" ? blueScoreFn : redScoreFn;
 
-  // All taken names except the active slot (so re-selection works)
   const allTaken = slots
     .map((s, i) => (i === activeSlot ? null : s.championName))
     .filter(Boolean) as string[];
@@ -71,11 +129,11 @@ export default function DraftPage({ champions }: Props) {
   const suggestions = useMemo(() => {
     if (isDraftComplete) return [];
     if (activeDef.kind === "ban") {
-      return getSuggestions(champions, allTaken, [], alliedPicks, null, isOurTurn);
+      return getSuggestions(champions, allTaken, [], alliedPicks, null, activeScoreFn);
     }
-    return getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, isOurTurn);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, activeSlot, roleFilter, champions]);
+    return getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots, activeSlot, roleFilter, champions, blueScoreFn, redScoreFn]);
 
   const visibleSuggestions = useMemo(() => {
     if (!search) return suggestions.slice(0, 25);
@@ -85,16 +143,14 @@ export default function DraftPage({ champions }: Props) {
   }, [suggestions, search]);
 
   const blueScore = useMemo(
-    () =>
-      computeTeamScore(SLOT_INDICES.bluePicks, slots, bluePicks, redPicks, champions, mySide === "blue"),
+    () => computeTeamScore(SLOT_INDICES.bluePicks, slots, bluePicks, redPicks, champions, blueScoreFn),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slots, champions, mySide]
+    [slots, champions, blueScoreFn]
   );
   const redScore = useMemo(
-    () =>
-      computeTeamScore(SLOT_INDICES.redPicks, slots, redPicks, bluePicks, champions, mySide === "red"),
+    () => computeTeamScore(SLOT_INDICES.redPicks, slots, redPicks, bluePicks, champions, redScoreFn),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slots, champions, mySide]
+    [slots, champions, redScoreFn]
   );
 
   const phaseLabel = (() => {
@@ -134,6 +190,8 @@ export default function DraftPage({ champions }: Props) {
     setRoleFilter(null);
     setSearch("");
     setMySide(null);
+    setBlueTeamId(null);
+    setRedTeamId(null);
   };
 
   const renderBanSlot = (slotIndex: number, seq: number) => {
@@ -181,22 +239,65 @@ export default function DraftPage({ champions }: Props) {
     ? Math.round((Math.max(blueScore, 0) / Math.max(blueScore + redScore, 1)) * 100)
     : 50;
 
-  if (!mySide) {
+  // ── Setup screen ──
+  if (!blueTeamId || !redTeamId || !mySide) {
+    const step = !blueTeamId ? "blue" : !redTeamId ? "red" : "side";
+
+    const renderTeamGrid = (onSelect: (id: string) => void, excludeId: string | null) => (
+      <div className="team-grid">
+        {teamIds.map((id) => {
+          const roster = players.filter((p) => p.teamId === id);
+          return (
+            <button
+              key={id}
+              className={`team-card${id === excludeId ? " disabled" : ""}`}
+              onClick={() => id !== excludeId && onSelect(id)}
+              disabled={id === excludeId}
+            >
+              <span className="team-card-name">{teamName(id)}</span>
+              <span className="team-card-players">
+                {roster.map((p) => p.ign).join(" · ")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+
     return (
       <div className="side-selection">
-        <h2 className="side-selection-title">Choose your side</h2>
-        <div className="side-selection-cards">
-          <button className="side-card blue" onClick={() => setMySide("blue")}>
-            <span className="side-card-icon">🔵</span>
-            <span className="side-card-name">Blue Side</span>
-            <span className="side-card-hint">First pick</span>
-          </button>
-          <button className="side-card red" onClick={() => setMySide("red")}>
-            <span className="side-card-icon">🔴</span>
-            <span className="side-card-name">Red Side</span>
-            <span className="side-card-hint">Last pick</span>
-          </button>
-        </div>
+        {step === "blue" && (
+          <>
+            <h2 className="side-selection-title">Blue Side Team</h2>
+            {renderTeamGrid((id) => setBlueTeamId(id), null)}
+          </>
+        )}
+        {step === "red" && (
+          <>
+            <h2 className="side-selection-title">Red Side Team</h2>
+            {renderTeamGrid((id) => setRedTeamId(id), blueTeamId)}
+          </>
+        )}
+        {step === "side" && (
+          <>
+            <h2 className="side-selection-title">Which side are you advising?</h2>
+            <div className="side-selection-cards">
+              <button className="side-card blue" onClick={() => setMySide("blue")}>
+                <span className="side-card-icon">🔵</span>
+                <span className="side-card-name">{teamName(blueTeamId!)}</span>
+                <span className="side-card-hint">Blue Side · First pick</span>
+              </button>
+              <button className="side-card red" onClick={() => setMySide("red")}>
+                <span className="side-card-icon">🔴</span>
+                <span className="side-card-name">{teamName(redTeamId!)}</span>
+                <span className="side-card-hint">Red Side · Last pick</span>
+              </button>
+            </div>
+            <button className="btn-secondary" style={{ marginTop: "1rem" }} onClick={() => setRedTeamId(null)}>
+              ← Back
+            </button>
+          </>
+        )}
       </div>
     );
   }
@@ -210,7 +311,7 @@ export default function DraftPage({ champions }: Props) {
             <>
               <span className="draft-phase-label">{phaseLabel}</span>
               <span className={`draft-turn-badge ${activeDef.team}`}>
-                {activeDef.team === "blue" ? "Blue" : "Red"} —{" "}
+                {activeDef.team === "blue" ? teamName(blueTeamId) : teamName(redTeamId)} —{" "}
                 {activeDef.kind === "ban" ? "Ban" : "Pick"}
               </span>
             </>
@@ -236,7 +337,7 @@ export default function DraftPage({ champions }: Props) {
       <div className="draft-board">
         {/* Blue team */}
         <div className="draft-team blue">
-          <div className="team-title blue">Blue Side</div>
+          <div className="team-title blue">{teamName(blueTeamId)}</div>
           <div className="team-section">
             <div className="section-label">Bans</div>
             <div className="bans-row">
@@ -258,9 +359,9 @@ export default function DraftPage({ champions }: Props) {
               <div className="draft-complete-icon">🏆</div>
               <h3>Draft Complete</h3>
               <p>
-                Blue <strong className="blue-text">{fmt(blueScore)}</strong>
+                {teamName(blueTeamId)} <strong className="blue-text">{fmt(blueScore)}</strong>
                 {" vs "}
-                Red <strong className="red-text">{fmt(redScore)}</strong>
+                {teamName(redTeamId)} <strong className="red-text">{fmt(redScore)}</strong>
               </p>
               <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={handleReset}>
                 New Draft
@@ -290,7 +391,7 @@ export default function DraftPage({ champions }: Props) {
                 )}
                 {activeDef.kind === "ban" && (
                   <div className="ban-hint">
-                    Sorted by threat level to {activeDef.team === "blue" ? "Blue" : "Red"} side
+                    Sorted by threat level to {activeDef.team === "blue" ? teamName(blueTeamId) : teamName(redTeamId)}
                   </div>
                 )}
                 <input
@@ -346,7 +447,7 @@ export default function DraftPage({ champions }: Props) {
 
         {/* Red team */}
         <div className="draft-team red">
-          <div className="team-title red">Red Side</div>
+          <div className="team-title red">{teamName(redTeamId)}</div>
           <div className="team-section">
             <div className="section-label">Bans</div>
             <div className="bans-row">
