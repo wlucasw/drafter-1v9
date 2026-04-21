@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  ChampionData,
-  Role,
-  ChampionRelation,
-} from "../types";
+import { ChampionData, Role } from "../types";
 import ChampionSearch from "./ChampionSearch";
 import ScoreInput from "./ScoreInput";
 
@@ -15,11 +11,6 @@ interface Props {
   onCancel: () => void;
 }
 
-function scoreColor(score: number): string {
-  if (score > 0) return "#4ade80";
-  if (score < 0) return "#f87171";
-  return "#9ca3af";
-}
 
 export default function ChampionEditor({
   champion,
@@ -30,18 +21,10 @@ export default function ChampionEditor({
 }: Props) {
   const [name, setName] = useState(champion.name);
   const [roles, setRoles] = useState(champion.role);
-  const [relations, setRelations] = useState<ChampionRelation[]>(champion.relations);
 
-  // Role form state
   const [showRoleForm, setShowRoleForm] = useState(false);
   const [newRoleValue, setNewRoleValue] = useState<Role>(Role.Top);
   const [newRoleMeta, setNewRoleMeta] = useState(0);
-
-  // Relation form state
-  const [showRelationForm, setShowRelationForm] = useState(false);
-  const [newRelatedName, setNewRelatedName] = useState("");
-  const [newRelationType, setNewRelationType] = useState<"synergy" | "counter">("synergy");
-  const [newRelationScore, setNewRelationScore] = useState(5);
 
   const usedRoles = new Set(roles.map((r) => r.role));
   const availableRoles = Object.values(Role).filter((r) => !usedRoles.has(r));
@@ -54,10 +37,7 @@ export default function ChampionEditor({
   };
 
   const addRole = () => {
-    setRoles((prev) => [
-      ...prev,
-      { role: newRoleValue, metaScore: newRoleMeta },
-    ]);
+    setRoles((prev) => [...prev, { role: newRoleValue, metaScore: newRoleMeta }]);
     setShowRoleForm(false);
   };
 
@@ -71,34 +51,9 @@ export default function ChampionEditor({
     );
   };
 
-  const addRelation = () => {
-    if (!newRelatedName.trim()) return;
-    setRelations((prev) => [
-      ...prev,
-      {
-        championNameConsidered: name,
-        championNameRelated: newRelatedName.trim(),
-        relationScore: newRelationScore,
-        relationType: newRelationType,
-      },
-    ]);
-    setNewRelatedName("");
-    setNewRelationScore(5);
-    setNewRelationType("synergy");
-    setShowRelationForm(false);
-  };
-
-  const removeRelation = (idx: number) => {
-    setRelations((prev) => prev.filter((_, i) => i !== idx));
-  };
-
   const handleSave = () => {
     if (!name) return;
-    const updatedRelations = relations.map((r) => ({
-      ...r,
-      championNameConsidered: name,
-    }));
-    onSave({ name, role: roles, relations: updatedRelations });
+    onSave({ name, role: roles, relations: champion.relations });
   };
 
   return (
@@ -189,86 +144,6 @@ export default function ChampionEditor({
             )}
           </div>
 
-          {/* Relations */}
-          <div className="section">
-            <div className="section-header">
-              <h3>Relations</h3>
-              {!showRelationForm && (
-                <button className="btn-sm" onClick={() => setShowRelationForm(true)}>
-                  + Add Relation
-                </button>
-              )}
-              {showRelationForm && (
-                <button className="btn-sm" onClick={() => setShowRelationForm(false)}>
-                  Cancel
-                </button>
-              )}
-            </div>
-
-            {relations.length === 0 && !showRelationForm && (
-              <p className="empty-state">No relations defined</p>
-            )}
-
-            {relations.map((r, i) => (
-              <div key={i} className={`relation-row ${r.relationType}`}>
-                <span className={`relation-type-badge ${r.relationType}`}>
-                  {r.relationType === "synergy" ? "⚡ Synergy" : "⚔️ Counter"}
-                </span>
-                <span className="related-champion">{r.championNameRelated}</span>
-                <span
-                  className="relation-score"
-                  style={{ color: scoreColor(r.relationScore) }}
-                >
-                  {r.relationScore > 0 ? "+" : ""}
-                  {r.relationScore}
-                </span>
-                <button className="btn-remove" onClick={() => removeRelation(i)}>
-                  ✕
-                </button>
-              </div>
-            ))}
-
-            {showRelationForm && (
-              <div className="inline-form relation-form">
-                <div className="relation-type-selector">
-                  <button
-                    className={`type-btn${newRelationType === "synergy" ? " active synergy" : ""}`}
-                    onClick={() => setNewRelationType("synergy")}
-                  >
-                    ⚡ Synergy
-                  </button>
-                  <button
-                    className={`type-btn${newRelationType === "counter" ? " active counter" : ""}`}
-                    onClick={() => setNewRelationType("counter")}
-                  >
-                    ⚔️ Counter
-                  </button>
-                </div>
-                <div className="relation-champion-row">
-                  <ChampionSearch
-                    value={newRelatedName}
-                    onChange={setNewRelatedName}
-                    exclude={[name]}
-                    placeholder="Search champion..."
-                  />
-                </div>
-                <div className="relation-bottom-row">
-                  <ScoreInput
-                    label="Score"
-                    value={newRelationScore}
-                    onChange={setNewRelationScore}
-                  />
-                  <button
-                    className="btn-primary btn-sm"
-                    onClick={addRelation}
-                    disabled={!newRelatedName.trim()}
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="modal-footer">
