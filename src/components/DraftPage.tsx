@@ -44,9 +44,9 @@ function scoreClass(n: number) {
   return n > 0 ? "pos" : n < 0 ? "neg" : "";
 }
 
-// Maps Role enum (ADC) to player data role field (Bot)
+// Maps Role enum (BOT) to player data role field (Bot)
 function roleToPlayerRole(role: Role): string {
-  return role === Role.ADC ? "Bot" : role;
+  return role === Role.BOT ? "Bot" : role;
 }
 
 // Builds a playerScoreFn for a given team's players.

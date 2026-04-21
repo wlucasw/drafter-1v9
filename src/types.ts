@@ -2,7 +2,7 @@ export enum Role {
   Top = "Top",
   Jungle = "Jungle",
   Mid = "Mid",
-  ADC = "ADC",
+  BOT = "Bot",
   Support = "Support",
 }
 

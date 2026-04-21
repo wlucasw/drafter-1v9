@@ -4,7 +4,7 @@
     "role": [
       {
         "role": "Top",
-        "metaScore": -2
+        "metaScore": 0
       },
       {
         "role": "Mid",
@@ -487,7 +487,7 @@
     "role": [
       {
         "role": "Jungle",
-        "metaScore": 2
+        "metaScore": 0
       }
     ],
     "relations": [
@@ -948,7 +948,7 @@
     "role": [
       {
         "role": "Mid",
-        "metaScore": 4.4
+        "metaScore": 0
       }
     ],
     "relations": [
@@ -1654,7 +1654,7 @@
     "role": [
       {
         "role": "Mid",
-        "metaScore": 2.2
+        "metaScore": 0
       }
     ],
     "relations": [
@@ -2114,7 +2114,7 @@
     "name": "Kai'Sa",
     "role": [
       {
-        "role": "ADC",
+        "role": "Bot",
         "metaScore": 0
       }
     ],
@@ -2228,7 +2228,7 @@
     "role": [
       {
         "role": "Support",
-        "metaScore": 2.3
+        "metaScore": 0
       }
     ],
     "relations": [
