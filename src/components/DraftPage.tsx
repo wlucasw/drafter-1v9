@@ -7,6 +7,7 @@ import {
   computeTeamScore,
   Team,
 } from "../draft/draftEngine";
+import { teamName } from "../constants";
 
 interface Props {
   champions: ChampionData[];
@@ -18,23 +19,6 @@ type SlotState = {
 };
 
 const ROLES = Object.values(Role);
-
-const TEAM_NAMES: Record<string, string> = {
-  fnc: "Fnatic",
-  g2: "G2 Esports",
-  gx: "Giant X",
-  kc: "Karmine Corp",
-  mkoi: "Movistar KOI",
-  navi: "NAVI",
-  sft: "Shifters",
-  sk: "SK Gaming",
-  th: "Team Heretics",
-  vit: "Team Vitality",
-};
-
-function teamName(id: string): string {
-  return TEAM_NAMES[id] ?? id.toUpperCase();
-}
 
 function fmt(n: number): string {
   return (n >= 0 ? "+" : "") + n.toFixed(1);
@@ -247,6 +231,7 @@ export default function DraftPage({ champions }: Props) {
       <div className="team-grid">
         {teamIds.map((id) => {
           const roster = players.filter((p) => p.teamId === id);
+          if(id === "fa") return null;
           return (
             <button
               key={id}

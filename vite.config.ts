@@ -7,6 +7,8 @@ const DATA_FILE = path.resolve(__dirname, 'champions.json');
 const META_FILE = path.resolve(__dirname, 'meta.json');
 const PLAYERS_FILE = path.resolve(__dirname, 'players.json');
 
+const ROSTERED_TEAM_IDS = new Set(['fnc', 'g2', 'gx', 'kc', 'mkoi', 'navi', 'sft', 'sk', 'th', 'vit']);
+
 // Maps export keys (no spaces/special chars) to display names
 const EXPORT_TO_DISPLAY: Record<string, string> = {
   AurelionSol: 'Aurelion Sol',
@@ -232,12 +234,54 @@ export default defineConfig({
           if (req.method === 'GET') {
             try {
               const raw = JSON.parse(fs.readFileSync(PLAYERS_FILE, 'utf-8'));
+              const all = [
+                ...(raw.data.rostered_seeds ?? []),
+                ...(raw.data.free_agent_seeds ?? []),
+              ];
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify(raw.data.rostered_seeds));
+              res.end(JSON.stringify(all));
             } catch {
               res.setHeader('Content-Type', 'application/json');
               res.end('[]');
             }
+          } else if (req.method === 'POST') {
+            let body = '';
+            req.on('data', (chunk) => (body += chunk));
+            req.on('end', () => {
+              try {
+                const incoming: { ign: string; firstName: string; lastName: string; role: string; teamId: string; champions: [string, number][] }[] = JSON.parse(body);
+                const file = JSON.parse(fs.readFileSync(PLAYERS_FILE, 'utf-8'));
+
+                // Index all existing records by IGN to preserve extra fields
+                const allExisting: Record<string, unknown>[] = [
+                  ...(file.data.rostered_seeds ?? []),
+                  ...(file.data.free_agent_seeds ?? []),
+                ];
+                const byIgn = new Map(allExisting.map((p) => [p['ign'], p]));
+
+                const merged = incoming.map((p) => ({
+                  ...(byIgn.get(p.ign) ?? {}),
+                  ign: p.ign,
+                  firstName: p.firstName,
+                  lastName: p.lastName,
+                  role: p.role,
+                  teamId: p.teamId,
+                  champions: p.champions,
+                }));
+
+                file.data.rostered_seeds = merged.filter((p) => ROSTERED_TEAM_IDS.has(p.teamId as string));
+                file.data.free_agent_seeds = merged
+                  .filter((p) => !ROSTERED_TEAM_IDS.has(p.teamId as string))
+                  .map((p) => ({ ...p, teamId: 'fa' }));
+
+                fs.writeFileSync(PLAYERS_FILE, JSON.stringify(file, null, 2));
+                res.setHeader('Content-Type', 'application/json');
+                res.end('{"ok":true}');
+              } catch {
+                res.statusCode = 500;
+                res.end('{"error":"save failed"}');
+              }
+            });
           }
         });
       },

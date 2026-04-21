@@ -19,3 +19,11 @@ export async function loadPlayers(): Promise<PlayerData[]> {
   if (!res.ok) return [];
   return res.json();
 }
+
+export async function savePlayers(players: PlayerData[]): Promise<void> {
+  await fetch('/api/players', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(players),
+  });
+}

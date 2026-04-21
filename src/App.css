@@ -1470,6 +1470,253 @@ body {
   color: var(--gold-light);
 }
 
+/* ── Players Page ─────────────────────────────────── */
+
+.team-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.team-tab {
+  padding: 0.45rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.team-tab:hover {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+.team-tab.active {
+  background: var(--gold);
+  color: var(--bg-dark);
+  border-color: var(--gold);
+  font-weight: 700;
+}
+
+.player-column-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  gap: 0.5rem;
+  background: rgba(200, 155, 60, 0.04);
+}
+
+.player-column-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.player-ign {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-realname {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.player-column-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.player-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.player-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  transition: all 0.12s;
+}
+
+.player-picker-item:hover {
+  border-color: var(--gold-dim);
+  background: var(--bg-card-hover);
+}
+
+.player-picker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.player-picker-ign {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+.player-picker-realname {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.player-picker-team {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.player-picker-team.free-agent {
+  color: var(--green);
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.25);
+}
+
+.player-create-btn {
+  align-self: stretch;
+  text-align: center;
+}
+
+.player-add-champ-btn {
+  align-self: center;
+  margin: 0.25rem auto;
+}
+
+.player-champ-form {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.player-champ-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.player-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.player-team-badge {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.player-pool-count {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.player-fullname {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-detail-realname {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.proficiency-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.proficiency-slider-row .score-slider {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+}
+
+.proficiency-slider-row .score-value {
+  min-width: 2.2rem;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.proficiency-bar-container {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.proficiency-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.2s;
+}
+
 /* ── Scrollbar ─────────────────────────────────── */
 
 ::-webkit-scrollbar {
