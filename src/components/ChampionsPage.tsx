@@ -210,8 +210,8 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
                       >
                         <input
                           type="range"
-                          min={-5}
-                          max={5}
+                          min={-7}
+                          max={7}
                           step={0.1}
                           value={displayScore}
                           onChange={(e) =>

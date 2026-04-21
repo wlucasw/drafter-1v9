@@ -12,8 +12,8 @@ export default function ScoreInput({ label, value, onChange }: Props) {
       <span className="score-label">{label}</span>
       <input
         type="range"
-        min={-5}
-        max={5}
+        min={-7}
+        max={7}
         step={0.1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
