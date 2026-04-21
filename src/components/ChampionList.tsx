@@ -18,9 +18,6 @@ export default function ChampionList({ champions, onEdit, onDelete, onCreate }: 
     <div className="champion-list">
       <div className="list-header">
         <h2>Champions ({champions.length})</h2>
-        <button className="btn-primary" onClick={onCreate}>
-          + Add Champion
-        </button>
       </div>
 
       {champions.length === 0 && (
