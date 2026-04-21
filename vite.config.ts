@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 
-const DATA_FILE = path.resolve(__dirname, 'champions-export.json');
+const DATA_FILE = path.resolve(__dirname, 'champions.json');
 const META_FILE = path.resolve(__dirname, 'meta.json');
 const PLAYERS_FILE = path.resolve(__dirname, 'players.json');
 
