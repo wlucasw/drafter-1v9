@@ -193,6 +193,234 @@ body {
   background: rgba(248, 113, 113, 0.1);
 }
 
+/* ── Champions Page (Role Columns) ─────────────────── */
+
+.champions-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.champions-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.champions-page-header h2 {
+  font-size: 1.2rem;
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+.champions-search {
+  width: 220px;
+  margin-left: auto;
+}
+
+.role-columns {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.role-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.role-column-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-count {
+  background: rgba(96, 165, 250, 0.1);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-save-column {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  cursor: not-allowed;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-save-column.dirty {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.btn-save-column.dirty:hover {
+  background: rgba(200, 155, 60, 0.15);
+  border-color: var(--gold);
+}
+
+.role-column-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  overflow-y: auto;
+  max-height: 62vh;
+}
+
+.role-champion-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.role-champion-card:hover {
+  border-color: var(--gold-dim);
+  background: var(--bg-card-hover);
+}
+
+.role-champion-card.selected {
+  border-color: var(--gold);
+  background: rgba(200, 155, 60, 0.08);
+  box-shadow: 0 0 8px rgba(200, 155, 60, 0.2);
+}
+
+.role-champion-card.dirty {
+  border-color: rgba(200, 155, 60, 0.35);
+}
+
+.dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+
+.role-champion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.role-champion-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.role-meta-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.role-meta-slider .score-slider {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+}
+
+.role-meta-slider .score-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── Champion Detail Panel ─────────────────────────── */
+
+.champion-detail-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-dim);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.champion-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.champion-detail-header h3 {
+  flex: 1;
+  font-size: 1.05rem;
+  color: var(--gold-light);
+  font-weight: 700;
+}
+
+.detail-role {
+  color: var(--blue);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.champion-detail-relations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.champion-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.detail-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.15rem;
+}
+
+.detail-section-title.synergy-title {
+  color: var(--synergy);
+}
+
+.detail-section-title.counter-title {
+  color: var(--counter);
+}
+
 /* ── Champion List ─────────────────────────────────── */
 
 .champion-list {
