@@ -1,6 +1,7 @@
 import { useState, Dispatch, SetStateAction } from "react";
 import { ChampionData, ChampionRelation, Role } from "../types";
 import ChampionEditor from "./ChampionEditor";
+import { parseChampionsHtml, ParsedChampionEntry } from "../parseChampionsHtml";
 
 const ROLES = [Role.Top, Role.Jungle, Role.Mid, Role.BOT, Role.Support];
 
@@ -52,6 +53,9 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
   const [selected, setSelected] = useState<Selection | null>(null);
   const [search, setSearch] = useState("");
   const [pendingScores, setPendingScores] = useState<PendingScores>({});
+  const [showImport, setShowImport] = useState(false);
+  const [importHtml, setImportHtml] = useState("");
+  const [importPreview, setImportPreview] = useState<ParsedChampionEntry[] | null>(null);
 
   const handleSave = (champion: ChampionData) => {
     onChampionsChange((prev) => {
@@ -114,6 +118,41 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
     });
   };
 
+  const handleParseImport = () => {
+    setImportPreview(parseChampionsHtml(importHtml));
+  };
+
+  const handleApplyImport = () => {
+    if (!importPreview) return;
+    onChampionsChange((prev) =>
+      prev.map((c) => {
+        const entries = importPreview.filter(
+          (e) => e.name.toLowerCase() === c.name.toLowerCase()
+        );
+        if (entries.length === 0) return c;
+        let roles = [...c.role];
+        for (const entry of entries) {
+          const idx = roles.findIndex((r) => r.role === entry.role);
+          if (idx >= 0) {
+            roles[idx] = { ...roles[idx], metaScore: entry.metaScore };
+          } else {
+            roles.push({ role: entry.role, metaScore: entry.metaScore });
+          }
+        }
+        return { ...c, role: roles };
+      })
+    );
+    setShowImport(false);
+    setImportHtml("");
+    setImportPreview(null);
+  };
+
+  const handleCloseImport = () => {
+    setShowImport(false);
+    setImportHtml("");
+    setImportPreview(null);
+  };
+
   const handleSelect = (name: string, role: Role) => {
     setSelected((prev) =>
       prev?.name === name && prev?.role === role ? null : { name, role }
@@ -135,6 +174,9 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <button className="btn-secondary import-btn" onClick={() => setShowImport(true)}>
+          Import from HTML
+        </button>
       </div>
 
       <div className="role-columns">
@@ -326,6 +368,94 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
           onSave={handleSave}
           onCancel={handleCancel}
         />
+      )}
+
+      {showImport && (
+        <div className="modal-overlay" onClick={handleCloseImport}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Import Meta Scores from HTML</h2>
+              <button className="close-btn" onClick={handleCloseImport}>×</button>
+            </div>
+            <div className="modal-body">
+              {!importPreview ? (
+                <div className="form-group">
+                  <label style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+                    Paste the full page HTML (e.g. from the Legends Manager 26 champions page)
+                  </label>
+                  <textarea
+                    className="text-input"
+                    style={{ minHeight: "200px", fontFamily: "monospace", fontSize: "0.75rem" }}
+                    value={importHtml}
+                    onChange={(e) => setImportHtml(e.target.value)}
+                    placeholder="Paste HTML here…"
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  {(() => {
+                    const matched = importPreview.filter((e) =>
+                      champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
+                    );
+                    const unmatched = importPreview.filter(
+                      (e) => !champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
+                    );
+                    return (
+                      <>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+                          Found <strong style={{ color: "var(--text)" }}>{importPreview.length}</strong> entries —{" "}
+                          <strong style={{ color: "var(--green)" }}>{matched.length}</strong> matched,{" "}
+                          <strong style={{ color: "var(--red)" }}>{unmatched.length}</strong> not in database (will be skipped).
+                        </p>
+                        {unmatched.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.75rem" }}>
+                            {unmatched.map((e) => (
+                              <span
+                                key={`${e.name}-${e.role}`}
+                                style={{
+                                  padding: "0.2rem 0.5rem",
+                                  background: "rgba(248,113,113,0.1)",
+                                  border: "1px solid rgba(248,113,113,0.3)",
+                                  borderRadius: "4px",
+                                  fontSize: "0.75rem",
+                                  color: "var(--red)",
+                                }}
+                              >
+                                {e.name} ({e.role})
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={handleCloseImport}>Cancel</button>
+              {!importPreview ? (
+                <button
+                  className="btn-primary"
+                  onClick={handleParseImport}
+                  disabled={!importHtml.trim()}
+                >
+                  Parse
+                </button>
+              ) : (
+                <button
+                  className="btn-primary"
+                  onClick={handleApplyImport}
+                  disabled={!importPreview.some((e) =>
+                    champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
+                  )}
+                >
+                  Apply Import
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

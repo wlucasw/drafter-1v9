@@ -1,3 +1,5 @@
+import { EXPORT_TO_DISPLAY } from "./championNames";
+
 export function parseRosterHtml(html: string): Record<string, [string, number][]> {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const result: Record<string, [string, number][]> = {};
@@ -19,8 +21,9 @@ export function parseRosterHtml(html: string): Record<string, [string, number][]
     const champions: [string, number][] = [];
 
     for (const img of Array.from(champImgs)) {
-      const champName = img.getAttribute("alt");
-      if (!champName) continue;
+      const raw = img.getAttribute("alt");
+      if (!raw) continue;
+      const champName = EXPORT_TO_DISPLAY[raw] ?? raw;
 
       // img → div.relative → card div
       // card.children: [div.relative, div.min-w-0]

@@ -1470,6 +1470,9 @@ body {
   color: var(--gold-light);
 }
 
+.import-btn{
+  margin-left: 0.5rem;
+}
 /* ── Players Page ─────────────────────────────────── */
 
 .team-selector {
