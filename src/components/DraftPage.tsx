@@ -40,9 +40,9 @@ function makePlayerScoreFn(players: PlayerData[], teamId: string) {
   return (championName: string, role: Role): number => {
     const playerRole = roleToPlayerRole(role);
     const player = roster.find((p) => p.role === playerRole);
-    if (!player) return 0;
+    if (!player) return -5; // No player for this role, treat as very low proficiency
     const entry = player.champions.find(([name]) => name === championName);
-    return entry ? entry[1] / 20 : 0;
+    return entry ? ((entry[1] / 10) - 5) : -5;
   };
 }
 

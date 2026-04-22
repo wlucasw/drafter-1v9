@@ -61,8 +61,8 @@ export function computeChampionScore(
   playerScoreFn?: (championName: string, role: Role) => number
 ): ScoreBreakdown {
   const roleScore = (r: { metaScore: number; role: Role }) => {
-    const meta = r.metaScore;
-    const player = playerScoreFn ? playerScoreFn(champion.name, r.role) : 0;
+    const meta = r.metaScore/3;
+    const player = playerScoreFn ? playerScoreFn(champion.name, r.role)/2 : 0;
     return meta + player;
   };
 
