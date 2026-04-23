@@ -10,7 +10,7 @@ export function parseRosterHtml(html: string): Record<string, [string, number][]
     const href = link.getAttribute("href") ?? "";
     const match = href.match(/\/dashboard\/player\/([^?/]+)/);
     if (!match) continue;
-    const ign = match[1].toLowerCase().replace(/-/g, " ").replace(/fa /g, " ");
+    const ign = match[1].toLowerCase().replace(/^fa-/, "").replace(/-/g, " ");
 
     // Structure: a → div(flex gap-2) → div(header) → div(player section)
     const section = link.parentElement?.parentElement?.parentElement;
