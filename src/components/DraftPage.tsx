@@ -18,6 +18,8 @@ type SlotState = {
   role: Role | null;
 };
 
+type BoFormat = "BO1" | "BO3" | "BO5";
+
 const ROLES = Object.values(Role);
 
 function fmt(n: number): string {
@@ -40,7 +42,7 @@ function makePlayerScoreFn(players: PlayerData[], teamId: string) {
   return (championName: string, role: Role): number => {
     const playerRole = roleToPlayerRole(role);
     const player = roster.find((p) => p.role === playerRole);
-    if (!player) return -5; // No player for this role, treat as very low proficiency
+    if (!player) return -5;
     const entry = player.champions.find(([name]) => name === championName);
     return entry ? ((entry[1] / 10) - 5) : -5;
   };
@@ -63,6 +65,11 @@ const SLOT_INDICES = {
 
 export default function DraftPage({ champions }: Props) {
   const [players, setPlayers] = useState<PlayerData[]>([]);
+  const [boFormat, setBoFormat] = useState<BoFormat | null>(null);
+  const [gameNumber, setGameNumber] = useState(1);
+  const [playedChampions, setPlayedChampions] = useState<string[]>([]);
+  const [boTeams, setBoTeams] = useState<[string, string] | null>(null);
+  const [betweenGames, setBetweenGames] = useState(false);
   const [blueTeamId, setBlueTeamId] = useState<string | null>(null);
   const [redTeamId, setRedTeamId] = useState<string | null>(null);
   const [mySide, setMySide] = useState<Team | null>(null);
@@ -91,14 +98,18 @@ export default function DraftPage({ champions }: Props) {
     [players, redTeamId]
   );
 
+  const maxGames = boFormat === "BO5" ? 5 : boFormat === "BO3" ? 3 : 1;
+
   const activeDef = DRAFT_SEQUENCE[activeSlot] ?? DRAFT_SEQUENCE[19];
   const isDraftComplete = activeSlot >= DRAFT_SEQUENCE.length;
-  const isOurTurn = mySide !== null && activeDef.team === mySide;
   const activeScoreFn = activeDef.team === "blue" ? blueScoreFn : redScoreFn;
 
-  const allTaken = slots
-    .map((s, i) => (i === activeSlot ? null : s.championName))
-    .filter(Boolean) as string[];
+  const allTaken = [
+    ...slots
+      .map((s, i) => (i === activeSlot ? null : s.championName))
+      .filter(Boolean),
+    ...playedChampions,
+  ] as string[];
 
   const bluePicks = SLOT_INDICES.bluePicks
     .map((i) => slots[i].championName)
@@ -176,6 +187,27 @@ export default function DraftPage({ champions }: Props) {
     setMySide(null);
     setBlueTeamId(null);
     setRedTeamId(null);
+    setBoFormat(null);
+    setGameNumber(1);
+    setPlayedChampions([]);
+    setBoTeams(null);
+    setBetweenGames(false);
+  };
+
+  const handleNextGame = () => {
+    const currentPicks = [...SLOT_INDICES.bluePicks, ...SLOT_INDICES.redPicks]
+      .map((i) => slots[i].championName)
+      .filter(Boolean) as string[];
+    setPlayedChampions((prev) => [...prev, ...currentPicks]);
+    setGameNumber((prev) => prev + 1);
+    setSlots(DRAFT_SEQUENCE.map(() => ({ championName: null, role: null })));
+    setActiveSlot(0);
+    setRoleFilter(null);
+    setSearch("");
+    setMySide(null);
+    setBlueTeamId(null);
+    setRedTeamId(null);
+    setBetweenGames(true);
   };
 
   const renderBanSlot = (slotIndex: number, seq: number) => {
@@ -223,15 +255,74 @@ export default function DraftPage({ champions }: Props) {
     ? Math.round((Math.max(blueScore, 0) / Math.max(blueScore + redScore, 1)) * 100)
     : 50;
 
-  // ── Setup screen ──
-  if (!blueTeamId || !redTeamId || !mySide) {
-    const step = !blueTeamId ? "blue" : !redTeamId ? "red" : "side";
+  // ── Between-games side assignment ──
+  if (betweenGames && boTeams && (!blueTeamId || !mySide)) {
+    const [teamA, teamB] = boTeams;
+    if (!blueTeamId) {
+      return (
+        <div className="side-selection">
+          <div className="bo-game-badge-large">Game {gameNumber} of {maxGames}</div>
+          <h2 className="side-selection-title">Which team plays Blue Side?</h2>
+          {playedChampions.length > 0 && (
+            <div className="fearless-notice">
+              Fearless draft — {playedChampions.length} champion{playedChampions.length !== 1 ? "s" : ""} locked out from previous game{gameNumber > 2 ? "s" : ""}
+            </div>
+          )}
+          <div className="side-selection-cards">
+            <button
+              className="side-card blue"
+              onClick={() => { setBlueTeamId(teamA); setRedTeamId(teamB); }}
+            >
+              <span className="side-card-name">{teamName(teamA)}</span>
+              <span className="side-card-hint">Blue Side · First pick</span>
+            </button>
+            <button
+              className="side-card red"
+              onClick={() => { setBlueTeamId(teamB); setRedTeamId(teamA); }}
+            >
+              <span className="side-card-name">{teamName(teamB)}</span>
+              <span className="side-card-hint">Blue Side · First pick</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="side-selection">
+        <div className="bo-game-badge-large">Game {gameNumber} of {maxGames}</div>
+        <h2 className="side-selection-title">Which side are you advising?</h2>
+        <div className="side-selection-cards">
+          <button className="side-card blue" onClick={() => setMySide("blue")}>
+            <span className="side-card-icon">🔵</span>
+            <span className="side-card-name">{teamName(blueTeamId)}</span>
+            <span className="side-card-hint">Blue Side · First pick</span>
+          </button>
+          <button className="side-card red" onClick={() => setMySide("red")}>
+            <span className="side-card-icon">🔴</span>
+            <span className="side-card-name">{teamName(redTeamId!)}</span>
+            <span className="side-card-hint">Red Side · Last pick</span>
+          </button>
+        </div>
+        <button
+          className="btn-secondary"
+          style={{ marginTop: "1rem" }}
+          onClick={() => { setBlueTeamId(null); setRedTeamId(null); }}
+        >
+          ← Back
+        </button>
+      </div>
+    );
+  }
+
+  // ── Initial setup screen ──
+  if (!boFormat || !blueTeamId || !redTeamId || !mySide) {
+    const step = !boFormat ? "format" : !blueTeamId ? "blue" : !redTeamId ? "red" : "side";
 
     const renderTeamGrid = (onSelect: (id: string) => void, excludeId: string | null) => (
       <div className="team-grid">
         {teamIds.map((id) => {
           const roster = players.filter((p) => p.teamId === id);
-          if(id === "fa") return null;
+          if (id === "fa") return null;
           return (
             <button
               key={id}
@@ -251,6 +342,21 @@ export default function DraftPage({ champions }: Props) {
 
     return (
       <div className="side-selection">
+        {step === "format" && (
+          <>
+            <h2 className="side-selection-title">Series Format</h2>
+            <div className="side-selection-cards">
+              {(["BO1", "BO3", "BO5"] as BoFormat[]).map((f) => (
+                <button key={f} className="side-card neutral" onClick={() => setBoFormat(f)}>
+                  <span className="side-card-name">{f}</span>
+                  <span className="side-card-hint">
+                    {f === "BO1" ? "Single game" : f === "BO3" ? "Best of 3 · Fearless" : "Best of 5 · Fearless"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {step === "blue" && (
           <>
             <h2 className="side-selection-title">Blue Side Team</h2>
@@ -260,7 +366,7 @@ export default function DraftPage({ champions }: Props) {
         {step === "red" && (
           <>
             <h2 className="side-selection-title">Red Side Team</h2>
-            {renderTeamGrid((id) => setRedTeamId(id), blueTeamId)}
+            {renderTeamGrid((id) => { setRedTeamId(id); setBoTeams([blueTeamId!, id]); }, blueTeamId)}
           </>
         )}
         {step === "side" && (
@@ -295,13 +401,23 @@ export default function DraftPage({ champions }: Props) {
           {!isDraftComplete ? (
             <>
               <span className="draft-phase-label">{phaseLabel}</span>
+              {maxGames > 1 && (
+                <span className="bo-game-badge">G{gameNumber}/{maxGames}</span>
+              )}
               <span className={`draft-turn-badge ${activeDef.team}`}>
                 {activeDef.team === "blue" ? teamName(blueTeamId) : teamName(redTeamId)} —{" "}
                 {activeDef.kind === "ban" ? "Ban" : "Pick"}
               </span>
             </>
           ) : (
-            <span className="draft-phase-label">Draft Complete</span>
+            <>
+              <span className="draft-phase-label">
+                {maxGames > 1 ? `Game ${gameNumber} Complete` : "Draft Complete"}
+              </span>
+              {maxGames > 1 && (
+                <span className="bo-game-badge">G{gameNumber}/{maxGames}</span>
+              )}
+            </>
           )}
         </div>
 
@@ -342,14 +458,27 @@ export default function DraftPage({ champions }: Props) {
           {isDraftComplete ? (
             <div className="draft-complete">
               <div className="draft-complete-icon">🏆</div>
-              <h3>Draft Complete</h3>
+              <h3>{maxGames > 1 ? `Game ${gameNumber} Complete` : "Draft Complete"}</h3>
               <p>
                 {teamName(blueTeamId)} <strong className="blue-text">{fmt(blueScore)}</strong>
                 {" vs "}
                 {teamName(redTeamId)} <strong className="red-text">{fmt(redScore)}</strong>
               </p>
-              <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={handleReset}>
-                New Draft
+              {gameNumber < maxGames && (
+                <button
+                  className="btn-primary"
+                  style={{ marginTop: "1rem" }}
+                  onClick={handleNextGame}
+                >
+                  Start Game {gameNumber + 1}
+                </button>
+              )}
+              <button
+                className={gameNumber < maxGames ? "btn-secondary" : "btn-primary"}
+                style={{ marginTop: "0.5rem" }}
+                onClick={handleReset}
+              >
+                {gameNumber < maxGames ? "End Series" : "New Draft"}
               </button>
             </div>
           ) : (
@@ -377,6 +506,11 @@ export default function DraftPage({ champions }: Props) {
                 {activeDef.kind === "ban" && (
                   <div className="ban-hint">
                     Sorted by threat level to {activeDef.team === "blue" ? teamName(blueTeamId) : teamName(redTeamId)}
+                  </div>
+                )}
+                {playedChampions.length > 0 && (
+                  <div className="fearless-notice">
+                    Fearless — {playedChampions.length} champion{playedChampions.length !== 1 ? "s" : ""} locked out
                   </div>
                 )}
                 <input

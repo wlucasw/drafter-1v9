@@ -105,7 +105,7 @@ export function computeChampionScore(
   let counter = 0;
   for (const rel of champion.relations) {
     if (rel.relationType === "counter" && enemyPicks.includes(rel.championNameRelated)) {
-      counter += rel.relationScore;
+      counter += rel.relationScore/2;
     }
   }
   for (const enemyName of enemyPicks) {
@@ -113,7 +113,7 @@ export function computeChampionScore(
     if (!enemy) continue;
     for (const rel of enemy.relations) {
       if (rel.relationType === "counter" && rel.championNameRelated === champion.name) {
-        counter += -rel.relationScore;
+        counter += -rel.relationScore/2;
       }
     }
   }
