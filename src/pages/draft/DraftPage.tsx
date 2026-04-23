@@ -100,7 +100,7 @@ export default function DraftPage({ champions }: Props) {
 
   const activeDef = DRAFT_SEQUENCE[activeSlot] ?? DRAFT_SEQUENCE[19];
   const isDraftComplete = activeSlot >= DRAFT_SEQUENCE.length;
-  const activeScoreFn = activeDef.team === "blue" ? (activeDef.kind !== "ban" ? blueScoreFn : redScoreFn) : (activeDef.kind === "ban" ? redScoreFn : blueScoreFn);
+  const activeScoreFn = activeDef.team === "blue" ? (activeDef.kind !== "ban" ? blueScoreFn : redScoreFn) : (activeDef.kind !== "ban" ? redScoreFn : blueScoreFn);
 
   const allTaken = [
     ...slots
