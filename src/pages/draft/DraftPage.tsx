@@ -100,7 +100,7 @@ export default function DraftPage({ champions }: Props) {
 
   const activeDef = DRAFT_SEQUENCE[activeSlot] ?? DRAFT_SEQUENCE[19];
   const isDraftComplete = activeSlot >= DRAFT_SEQUENCE.length;
-  const activeScoreFn = activeDef.team === "blue" ? blueScoreFn : redScoreFn;
+  const activeScoreFn = activeDef.team === "blue" ? (activeDef.kind !== "ban" ? blueScoreFn : redScoreFn) : (activeDef.kind === "ban" ? redScoreFn : blueScoreFn);
 
   const allTaken = [
     ...slots
@@ -122,7 +122,7 @@ export default function DraftPage({ champions }: Props) {
   const suggestions = useMemo(() => {
     if (isDraftComplete) return [];
     if (activeDef.kind === "ban") {
-      return getSuggestions(champions, allTaken, [], alliedPicks, null, activeScoreFn);
+      return getSuggestions(champions, allTaken, enemyPicks, alliedPicks, roleFilter, activeScoreFn);
     }
     return getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,25 +372,23 @@ export default function DraftPage({ champions }: Props) {
           ) : (
             <>
               <div className="suggestions-top">
-                {activeDef.kind === "pick" && (
-                  <div className="role-filters">
+                <div className="role-filters">
+                  <button
+                    className={`role-filter-btn${roleFilter === null ? " active" : ""}`}
+                    onClick={() => setRoleFilter(null)}
+                  >
+                    All
+                  </button>
+                  {ROLES.map((r) => (
                     <button
-                      className={`role-filter-btn${roleFilter === null ? " active" : ""}`}
-                      onClick={() => setRoleFilter(null)}
+                      key={r}
+                      className={`role-filter-btn${roleFilter === r ? " active" : ""}`}
+                      onClick={() => setRoleFilter(roleFilter === r ? null : r)}
                     >
-                      All
+                      {r}
                     </button>
-                    {ROLES.map((r) => (
-                      <button
-                        key={r}
-                        className={`role-filter-btn${roleFilter === r ? " active" : ""}`}
-                        onClick={() => setRoleFilter(roleFilter === r ? null : r)}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  ))}
+                </div>
                 {activeDef.kind === "ban" && (
                   <div className="ban-hint">
                     Sorted by threat level to {activeDef.team === "blue" ? teamName(blueTeamId) : teamName(redTeamId)}
