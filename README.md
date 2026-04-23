@@ -19,9 +19,11 @@ A League of Legends draft advisor that suggests picks and bans in real time base
 
 In the root directory :
 - Add your files :
+```bash
 champions.json     
 players.json
-- Create an empty file "meta.json" in the root directory        
+```
+- Create an empty file  ` meta.json `  in the root directory        
 
 ```bash
 npm install
