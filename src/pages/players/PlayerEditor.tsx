@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PlayerData, PlayerRole } from "../types";
-import { TEAM_NAMES } from "../constants";
-import ChampionSearch from "./ChampionSearch";
+import { PlayerData, PlayerRole } from "../../types";
+import { TEAM_NAMES } from "../../constants";
+import ChampionSearch from "../../shared/ChampionSearch";
 
 const ROLES: PlayerRole[] = ["Top", "Jungle", "Mid", "Bot", "Support"];
 

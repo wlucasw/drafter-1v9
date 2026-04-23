@@ -1,4 +1,4 @@
-import { ChampionData } from "../types";
+import { ChampionData } from "../../types";
 
 interface Props {
   champions: ChampionData[];

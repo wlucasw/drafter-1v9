@@ -1,9 +1,9 @@
 import { useState, Dispatch, SetStateAction } from "react";
-import { PlayerData, PlayerRole } from "../types";
-import { TEAM_NAMES, teamName } from "../constants";
+import { PlayerData, PlayerRole } from "../../types";
+import { TEAM_NAMES, teamName } from "../../constants";
 import PlayerEditor from "./PlayerEditor";
-import ChampionSearch from "./ChampionSearch";
-import { parseRosterHtml } from "../parseRosterHtml";
+import PlayerImportModal from "./PlayerImportModal";
+import ChampionSearch from "../../shared/ChampionSearch";
 
 function getTeamFromHash(): string | null {
   const parts = window.location.hash.slice(1).split("/");
@@ -47,8 +47,6 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
   const [addingPlayerFor, setAddingPlayerFor] = useState<PlayerRole | null>(null);
   const [playerSearch, setPlayerSearch] = useState("");
   const [showImport, setShowImport] = useState(false);
-  const [importHtml, setImportHtml] = useState("");
-  const [importPreview, setImportPreview] = useState<Record<string, [string, number][]> | null>(null);
 
   const handleSliderChange = (ign: string, champName: string, value: number) => {
     setPendingProf((prev) => ({
@@ -110,29 +108,15 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
     });
   };
 
-  const handleParseImport = () => {
-    const parsed = parseRosterHtml(importHtml);
-    setImportPreview(parsed);
-  };
-
-  const handleApplyImport = () => {
-    if (!importPreview) return;
+  const handleApplyImport = (preview: Record<string, [string, number][]>) => {
     onPlayersChange((prev) =>
       prev.map((p) => {
         const key = p.ign.toLowerCase();
-        if (!(key in importPreview)) return p;
-        return { ...p, champions: importPreview[key] };
+        if (!(key in preview)) return p;
+        return { ...p, champions: preview[key] };
       })
     );
     setShowImport(false);
-    setImportHtml("");
-    setImportPreview(null);
-  };
-
-  const handleCloseImport = () => {
-    setShowImport(false);
-    setImportHtml("");
-    setImportPreview(null);
   };
 
   const handleAssignPlayer = (player: PlayerData, role: PlayerRole) => {
@@ -193,7 +177,6 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
     ? players.filter((p) => p.teamId === selectedTeamId)
     : [];
 
-  // Players available to be assigned: not already on this team
   const availablePlayers = players
     .filter(
       (p) =>
@@ -203,7 +186,6 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
           `${p.firstName} ${p.lastName}`.toLowerCase().includes(playerSearch.toLowerCase()))
     )
     .sort((a, b) => {
-      // Free agents first, then alphabetical
       if (!a.teamId && b.teamId) return -1;
       if (a.teamId && !b.teamId) return 1;
       return a.ign.localeCompare(b.ign);
@@ -314,7 +296,6 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
                 )}
 
                 <div className="role-column-list">
-                  {/* Player picker for empty role slot */}
                   {!player && isPickingPlayer && (
                     <div className="player-picker">
                       <input
@@ -363,7 +344,6 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
                     <div className="empty-state">No player assigned</div>
                   )}
 
-                  {/* Champion pool */}
                   {player &&
                     [...player.champions]
                       .sort((a, b) => b[1] - a[1])
@@ -486,90 +466,11 @@ export default function PlayersPage({ players, onPlayersChange }: Props) {
       )}
 
       {showImport && (
-        <div className="modal-overlay" onClick={handleCloseImport}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Import Champion Pools from HTML</h2>
-              <button className="close-btn" onClick={handleCloseImport}>×</button>
-            </div>
-            <div className="modal-body">
-              {!importPreview ? (
-                <div className="form-group">
-                  <label style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-                    Paste the full page HTML (e.g. from Legends Manager 26 champion pool page)
-                  </label>
-                  <textarea
-                    className="text-input"
-                    style={{ minHeight: "200px", fontFamily: "monospace", fontSize: "0.75rem" }}
-                    value={importHtml}
-                    onChange={(e) => setImportHtml(e.target.value)}
-                    placeholder="Paste HTML here…"
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "0.75rem" }}>
-                    Found champion pools for {Object.keys(importPreview).length} player(s).
-                    Existing players will have their pools replaced.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                    {Object.entries(importPreview).map(([ign, champs]) => {
-                      const matched = players.find((p) => p.ign.toLowerCase() === ign);
-                      return (
-                        <div
-                          key={ign}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                            padding: "0.5rem 0.75rem",
-                            background: "var(--bg-input)",
-                            border: `1px solid ${matched ? "var(--border)" : "rgba(248,113,113,0.3)"}`,
-                            borderRadius: "4px",
-                          }}
-                        >
-                          <span style={{ fontWeight: 600, color: matched ? "var(--text)" : "var(--red)", minWidth: "120px" }}>
-                            {matched ? matched.ign : ign}
-                          </span>
-                          <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                            {champs.length} champions
-                          </span>
-                          {!matched && (
-                            <span style={{ color: "var(--red)", fontSize: "0.75rem", marginLeft: "auto" }}>
-                              no match — will be skipped
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={handleCloseImport}>Cancel</button>
-              {!importPreview ? (
-                <button
-                  className="btn-primary"
-                  onClick={handleParseImport}
-                  disabled={!importHtml.trim()}
-                >
-                  Parse
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={handleApplyImport}
-                  disabled={Object.keys(importPreview).every(
-                    (ign) => !players.find((p) => p.ign.toLowerCase() === ign)
-                  )}
-                >
-                  Apply Import
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <PlayerImportModal
+          players={players}
+          onApply={handleApplyImport}
+          onClose={() => setShowImport(false)}
+        />
       )}
     </div>
   );

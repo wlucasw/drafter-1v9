@@ -1,7 +1,9 @@
 import { useState, Dispatch, SetStateAction } from "react";
-import { ChampionData, ChampionRelation, Role } from "../types";
+import { ChampionData, Role } from "../../types";
+import { ParsedChampionEntry } from "../../parseChampionsHtml";
 import ChampionEditor from "./ChampionEditor";
-import { parseChampionsHtml, ParsedChampionEntry } from "../parseChampionsHtml";
+import ChampionDetailPanel from "./ChampionDetailPanel";
+import ChampionImportModal from "./ChampionImportModal";
 
 const ROLES = [Role.Top, Role.Jungle, Role.Mid, Role.BOT, Role.Support];
 
@@ -25,28 +27,6 @@ interface Selection {
 
 type PendingScores = Partial<Record<Role, Record<string, number>>>;
 
-function getRelations(champion: ChampionData) {
-  const toEntry = (r: ChampionRelation) => ({
-    name:
-      r.championNameConsidered === champion.name
-        ? r.championNameRelated
-        : r.championNameConsidered,
-    score: r.relationScore,
-  });
-
-  const synergies = champion.relations
-    .filter((r) => r.relationType === "synergy")
-    .map(toEntry)
-    .sort((a, b) => b.score - a.score);
-
-  const counters = champion.relations
-    .filter((r) => r.relationType === "counter")
-    .map(toEntry)
-    .sort((a, b) => b.score - a.score);
-
-  return { synergies, counters };
-}
-
 export default function ChampionsPage({ champions, onChampionsChange }: Props) {
   const [editingChampion, setEditingChampion] = useState<ChampionData | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -54,8 +34,6 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
   const [search, setSearch] = useState("");
   const [pendingScores, setPendingScores] = useState<PendingScores>({});
   const [showImport, setShowImport] = useState(false);
-  const [importHtml, setImportHtml] = useState("");
-  const [importPreview, setImportPreview] = useState<ParsedChampionEntry[] | null>(null);
 
   const handleSave = (champion: ChampionData) => {
     onChampionsChange((prev) => {
@@ -118,15 +96,10 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
     });
   };
 
-  const handleParseImport = () => {
-    setImportPreview(parseChampionsHtml(importHtml));
-  };
-
-  const handleApplyImport = () => {
-    if (!importPreview) return;
+  const handleApplyImport = (preview: ParsedChampionEntry[]) => {
     onChampionsChange((prev) =>
       prev.map((c) => {
-        const entries = importPreview.filter(
+        const entries = preview.filter(
           (e) => e.name.toLowerCase() === c.name.toLowerCase()
         );
         if (entries.length === 0) return c;
@@ -143,14 +116,6 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
       })
     );
     setShowImport(false);
-    setImportHtml("");
-    setImportPreview(null);
-  };
-
-  const handleCloseImport = () => {
-    setShowImport(false);
-    setImportHtml("");
-    setImportPreview(null);
   };
 
   const handleSelect = (name: string, role: Role) => {
@@ -162,6 +127,8 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
   const selectedChampion = selected
     ? champions.find((c) => c.name === selected.name) ?? null
     : null;
+
+  void handleCreate;
 
   return (
     <div className="champions-page">
@@ -185,7 +152,6 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
           const rolePending = pendingScores[role] ?? {};
           const dirtyCount = Object.keys(rolePending).length;
 
-          // Sort by saved score to keep order stable while sliding
           const roleChampions = champions
             .filter(
               (c) =>
@@ -284,80 +250,13 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
       </div>
 
       {selectedChampion && selected && (
-        <div className="champion-detail-panel">
-          <div className="champion-detail-header">
-            <h3>
-              {selectedChampion.name}{" "}
-              <span className="detail-role">— {selected.role}</span>
-            </h3>
-            <button
-              className="btn-secondary"
-              onClick={() => handleEdit(selectedChampion)}
-            >
-              Edit
-            </button>
-            <button
-              className="btn-danger"
-              onClick={() => handleDelete(selectedChampion.name)}
-            >
-              Delete
-            </button>
-            <button className="close-btn" onClick={() => setSelected(null)}>
-              ×
-            </button>
-          </div>
-          {(() => {
-            const { synergies, counters } = getRelations(selectedChampion);
-            return (
-              <div className="champion-detail-relations">
-                <div className="champion-detail-section">
-                  <h4 className="detail-section-title synergy-title">
-                    Synergies ({synergies.length})
-                  </h4>
-                  {synergies.length === 0 ? (
-                    <div className="empty-state">No synergies</div>
-                  ) : (
-                    synergies.map((s) => (
-                      <div key={s.name} className="relation-row synergy">
-                        <span className="relation-type-badge synergy">Synergy</span>
-                        <span className="related-champion">{s.name}</span>
-                        <span
-                          className="relation-score"
-                          style={{ color: s.score > 0 ? "#4ade80" : "#f87171" }}
-                        >
-                          {s.score > 0 ? "+" : ""}
-                          {s.score}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="champion-detail-section">
-                  <h4 className="detail-section-title counter-title">
-                    Counters ({counters.length})
-                  </h4>
-                  {counters.length === 0 ? (
-                    <div className="empty-state">No counters</div>
-                  ) : (
-                    counters.map((c) => (
-                      <div key={c.name} className="relation-row counter">
-                        <span className="relation-type-badge counter">Counter</span>
-                        <span className="related-champion">{c.name}</span>
-                        <span
-                          className="relation-score"
-                          style={{ color: c.score > 0 ? "#4ade80" : "#f87171" }}
-                        >
-                          {c.score > 0 ? "+" : ""}
-                          {c.score}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <ChampionDetailPanel
+          champion={selectedChampion}
+          role={selected.role}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onClose={() => setSelected(null)}
+        />
       )}
 
       {editingChampion && (
@@ -371,91 +270,11 @@ export default function ChampionsPage({ champions, onChampionsChange }: Props) {
       )}
 
       {showImport && (
-        <div className="modal-overlay" onClick={handleCloseImport}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Import Meta Scores from HTML</h2>
-              <button className="close-btn" onClick={handleCloseImport}>×</button>
-            </div>
-            <div className="modal-body">
-              {!importPreview ? (
-                <div className="form-group">
-                  <label style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-                    Paste the full page HTML (e.g. from the Legends Manager 26 champions page)
-                  </label>
-                  <textarea
-                    className="text-input"
-                    style={{ minHeight: "200px", fontFamily: "monospace", fontSize: "0.75rem" }}
-                    value={importHtml}
-                    onChange={(e) => setImportHtml(e.target.value)}
-                    placeholder="Paste HTML here…"
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  {(() => {
-                    const matched = importPreview.filter((e) =>
-                      champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
-                    );
-                    const unmatched = importPreview.filter(
-                      (e) => !champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
-                    );
-                    return (
-                      <>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-                          Found <strong style={{ color: "var(--text)" }}>{importPreview.length}</strong> entries —{" "}
-                          <strong style={{ color: "var(--green)" }}>{matched.length}</strong> matched,{" "}
-                          <strong style={{ color: "var(--red)" }}>{unmatched.length}</strong> not in database (will be skipped).
-                        </p>
-                        {unmatched.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.75rem" }}>
-                            {unmatched.map((e) => (
-                              <span
-                                key={`${e.name}-${e.role}`}
-                                style={{
-                                  padding: "0.2rem 0.5rem",
-                                  background: "rgba(248,113,113,0.1)",
-                                  border: "1px solid rgba(248,113,113,0.3)",
-                                  borderRadius: "4px",
-                                  fontSize: "0.75rem",
-                                  color: "var(--red)",
-                                }}
-                              >
-                                {e.name} ({e.role})
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={handleCloseImport}>Cancel</button>
-              {!importPreview ? (
-                <button
-                  className="btn-primary"
-                  onClick={handleParseImport}
-                  disabled={!importHtml.trim()}
-                >
-                  Parse
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={handleApplyImport}
-                  disabled={!importPreview.some((e) =>
-                    champions.some((c) => c.name.toLowerCase() === e.name.toLowerCase())
-                  )}
-                >
-                  Apply Import
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <ChampionImportModal
+          champions={champions}
+          onApply={handleApplyImport}
+          onClose={() => setShowImport(false)}
+        />
       )}
     </div>
   );

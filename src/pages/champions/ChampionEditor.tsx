@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ChampionData, Role } from "../types";
-import ChampionSearch from "./ChampionSearch";
+import { ChampionData, Role } from "../../types";
+import ChampionSearch from "../../shared/ChampionSearch";
 import ScoreInput from "./ScoreInput";
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
   onSave: (champion: ChampionData) => void;
   onCancel: () => void;
 }
-
 
 export default function ChampionEditor({
   champion,
@@ -67,7 +66,6 @@ export default function ChampionEditor({
         </div>
 
         <div className="modal-body">
-          {/* Name */}
           <div className="form-group">
             <label>Champion Name</label>
             {isNew ? (
@@ -87,7 +85,6 @@ export default function ChampionEditor({
             )}
           </div>
 
-          {/* Roles */}
           <div className="section">
             <div className="section-header">
               <h3>Roles</h3>
@@ -143,7 +140,6 @@ export default function ChampionEditor({
               </div>
             )}
           </div>
-
         </div>
 
         <div className="modal-footer">

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { ChampionData, PlayerData } from "./types";
 import { loadChampions, saveChampions, loadPlayers, savePlayers } from "./store";
-import ChampionsPage from "./components/ChampionsPage";
-import DraftPage from "./components/DraftPage";
-import PlayersPage from "./components/PlayersPage";
+import ChampionsPage from "./pages/champions/ChampionsPage";
+import DraftPage from "./pages/draft/DraftPage";
+import PlayersPage from "./pages/players/PlayersPage";
 import "./App.css";
 
 type Tab = "champions" | "players" | "draft";

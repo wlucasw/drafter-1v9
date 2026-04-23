@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
-import { ChampionData, PlayerData, Role } from "../types";
-import { loadPlayers } from "../store";
+import { ChampionData, PlayerData, Role } from "../../types";
+import { loadPlayers } from "../../store";
 import {
   DRAFT_SEQUENCE,
   getSuggestions,
   computeTeamScore,
   Team,
-} from "../draft/draftEngine";
-import { teamName } from "../constants";
+} from "../../draft/draftEngine";
+import { teamName } from "../../constants";
+import { BoFormat } from "./draftPageTypes";
+import DraftSetupScreen from "./DraftSetupScreen";
+import DraftBetweenGamesScreen from "./DraftBetweenGamesScreen";
 
 interface Props {
   champions: ChampionData[];
@@ -17,8 +20,6 @@ type SlotState = {
   championName: string | null;
   role: Role | null;
 };
-
-type BoFormat = "BO1" | "BO3" | "BO5";
 
 const ROLES = Object.values(Role);
 
@@ -30,13 +31,10 @@ function scoreClass(n: number) {
   return n > 0 ? "pos" : n < 0 ? "neg" : "";
 }
 
-// Maps Role enum (BOT) to player data role field (Bot)
 function roleToPlayerRole(role: Role): string {
   return role === Role.BOT ? "Bot" : role;
 }
 
-// Builds a playerScoreFn for a given team's players.
-// Returns proficiency / 20 so scale matches metaScore range (~0–5).
 function makePlayerScoreFn(players: PlayerData[], teamId: string) {
   const roster = players.filter((p) => p.teamId === teamId);
   return (championName: string, role: Role): number => {
@@ -255,147 +253,40 @@ export default function DraftPage({ champions }: Props) {
     ? Math.round((Math.max(blueScore, 0) / Math.max(blueScore + redScore, 1)) * 100)
     : 50;
 
-  // ── Between-games side assignment ──
   if (betweenGames && boTeams && (!blueTeamId || !mySide)) {
-    const [teamA, teamB] = boTeams;
-    if (!blueTeamId) {
-      return (
-        <div className="side-selection">
-          <div className="bo-game-badge-large">Game {gameNumber} of {maxGames}</div>
-          <h2 className="side-selection-title">Which team plays Blue Side?</h2>
-          {playedChampions.length > 0 && (
-            <div className="fearless-notice">
-              Fearless draft — {playedChampions.length} champion{playedChampions.length !== 1 ? "s" : ""} locked out from previous game{gameNumber > 2 ? "s" : ""}
-            </div>
-          )}
-          <div className="side-selection-cards">
-            <button
-              className="side-card blue"
-              onClick={() => { setBlueTeamId(teamA); setRedTeamId(teamB); }}
-            >
-              <span className="side-card-name">{teamName(teamA)}</span>
-              <span className="side-card-hint">Blue Side · First pick</span>
-            </button>
-            <button
-              className="side-card red"
-              onClick={() => { setBlueTeamId(teamB); setRedTeamId(teamA); }}
-            >
-              <span className="side-card-name">{teamName(teamB)}</span>
-              <span className="side-card-hint">Blue Side · First pick</span>
-            </button>
-          </div>
-        </div>
-      );
-    }
     return (
-      <div className="side-selection">
-        <div className="bo-game-badge-large">Game {gameNumber} of {maxGames}</div>
-        <h2 className="side-selection-title">Which side are you advising?</h2>
-        <div className="side-selection-cards">
-          <button className="side-card blue" onClick={() => setMySide("blue")}>
-            <span className="side-card-icon">🔵</span>
-            <span className="side-card-name">{teamName(blueTeamId)}</span>
-            <span className="side-card-hint">Blue Side · First pick</span>
-          </button>
-          <button className="side-card red" onClick={() => setMySide("red")}>
-            <span className="side-card-icon">🔴</span>
-            <span className="side-card-name">{teamName(redTeamId!)}</span>
-            <span className="side-card-hint">Red Side · Last pick</span>
-          </button>
-        </div>
-        <button
-          className="btn-secondary"
-          style={{ marginTop: "1rem" }}
-          onClick={() => { setBlueTeamId(null); setRedTeamId(null); }}
-        >
-          ← Back
-        </button>
-      </div>
+      <DraftBetweenGamesScreen
+        gameNumber={gameNumber}
+        maxGames={maxGames}
+        playedChampions={playedChampions}
+        boTeams={boTeams}
+        blueTeamId={blueTeamId}
+        onSelectBlueSide={(blueId, redId) => { setBlueTeamId(blueId); setRedTeamId(redId); }}
+        onSelectMySide={setMySide}
+        onBack={() => { setBlueTeamId(null); setRedTeamId(null); }}
+      />
     );
   }
 
-  // ── Initial setup screen ──
   if (!boFormat || !blueTeamId || !redTeamId || !mySide) {
-    const step = !boFormat ? "format" : !blueTeamId ? "blue" : !redTeamId ? "red" : "side";
-
-    const renderTeamGrid = (onSelect: (id: string) => void, excludeId: string | null) => (
-      <div className="team-grid">
-        {teamIds.map((id) => {
-          const roster = players.filter((p) => p.teamId === id);
-          if (id === "fa") return null;
-          return (
-            <button
-              key={id}
-              className={`team-card${id === excludeId ? " disabled" : ""}`}
-              onClick={() => id !== excludeId && onSelect(id)}
-              disabled={id === excludeId}
-            >
-              <span className="team-card-name">{teamName(id)}</span>
-              <span className="team-card-players">
-                {roster.map((p) => p.ign).join(" · ")}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    );
-
     return (
-      <div className="side-selection">
-        {step === "format" && (
-          <>
-            <h2 className="side-selection-title">Series Format</h2>
-            <div className="side-selection-cards">
-              {(["BO1", "BO3", "BO5"] as BoFormat[]).map((f) => (
-                <button key={f} className="side-card neutral" onClick={() => setBoFormat(f)}>
-                  <span className="side-card-name">{f}</span>
-                  <span className="side-card-hint">
-                    {f === "BO1" ? "Single game" : f === "BO3" ? "Best of 3 · Fearless" : "Best of 5 · Fearless"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {step === "blue" && (
-          <>
-            <h2 className="side-selection-title">Blue Side Team</h2>
-            {renderTeamGrid((id) => setBlueTeamId(id), null)}
-          </>
-        )}
-        {step === "red" && (
-          <>
-            <h2 className="side-selection-title">Red Side Team</h2>
-            {renderTeamGrid((id) => { setRedTeamId(id); setBoTeams([blueTeamId!, id]); }, blueTeamId)}
-          </>
-        )}
-        {step === "side" && (
-          <>
-            <h2 className="side-selection-title">Which side are you advising?</h2>
-            <div className="side-selection-cards">
-              <button className="side-card blue" onClick={() => setMySide("blue")}>
-                <span className="side-card-icon">🔵</span>
-                <span className="side-card-name">{teamName(blueTeamId!)}</span>
-                <span className="side-card-hint">Blue Side · First pick</span>
-              </button>
-              <button className="side-card red" onClick={() => setMySide("red")}>
-                <span className="side-card-icon">🔴</span>
-                <span className="side-card-name">{teamName(redTeamId!)}</span>
-                <span className="side-card-hint">Red Side · Last pick</span>
-              </button>
-            </div>
-            <button className="btn-secondary" style={{ marginTop: "1rem" }} onClick={() => setRedTeamId(null)}>
-              ← Back
-            </button>
-          </>
-        )}
-      </div>
+      <DraftSetupScreen
+        boFormat={boFormat}
+        blueTeamId={blueTeamId}
+        redTeamId={redTeamId}
+        teamIds={teamIds}
+        players={players}
+        onSetBoFormat={setBoFormat}
+        onSetBlueTeam={setBlueTeamId}
+        onSetRedTeam={(id) => { setRedTeamId(id); setBoTeams([blueTeamId!, id]); }}
+        onSetMySide={setMySide}
+        onBack={() => setRedTeamId(null)}
+      />
     );
   }
 
   return (
     <div className="draft-page">
-      {/* ── Header ── */}
       <div className="draft-header">
         <div className="draft-phase-info">
           {!isDraftComplete ? (
@@ -434,9 +325,7 @@ export default function DraftPage({ champions }: Props) {
         </button>
       </div>
 
-      {/* ── Board ── */}
       <div className="draft-board">
-        {/* Blue team */}
         <div className="draft-team blue">
           <div className="team-title blue">{teamName(blueTeamId)}</div>
           <div className="team-section">
@@ -453,7 +342,6 @@ export default function DraftPage({ champions }: Props) {
           </div>
         </div>
 
-        {/* Suggestions */}
         <div className="draft-suggestions">
           {isDraftComplete ? (
             <div className="draft-complete">
@@ -564,7 +452,6 @@ export default function DraftPage({ champions }: Props) {
           )}
         </div>
 
-        {/* Red team */}
         <div className="draft-team red">
           <div className="team-title red">{teamName(redTeamId)}</div>
           <div className="team-section">
