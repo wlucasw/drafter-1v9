@@ -42,6 +42,7 @@ export type ScoreBreakdown = {
   base: number;
   synergy: number;
   counter: number;
+  laneCounter?: number;
 };
 
 export type ChampionSuggestion = {
@@ -58,7 +59,8 @@ export function computeChampionScore(
   alliedPicks: string[],
   enemyPicks: string[],
   allChampions: ChampionData[],
-  playerScoreFn?: (championName: string, role: Role) => number
+  playerScoreFn?: (championName: string, role: Role) => number,
+  laneEnemyPick?: string | null
 ): ScoreBreakdown {
   const roleScore = (r: { metaScore: number; role: Role }) => {
     const meta = r.metaScore/3;
@@ -118,7 +120,25 @@ export function computeChampionScore(
     }
   }
 
-  return { total: base + synergy + counter, base, synergy, counter };
+  let laneCounter: number | undefined;
+  if (laneEnemyPick) {
+    laneCounter = 0;
+    for (const rel of champion.relations) {
+      if (rel.relationType === "counter" && rel.championNameRelated === laneEnemyPick) {
+        laneCounter += rel.relationScore / 2;
+      }
+    }
+    const laneEnemy = allChampions.find((c) => c.name === laneEnemyPick);
+    if (laneEnemy) {
+      for (const rel of laneEnemy.relations) {
+        if (rel.relationType === "counter" && rel.championNameRelated === champion.name) {
+          laneCounter += -rel.relationScore / 2;
+        }
+      }
+    }
+  }
+
+  return { total: base + synergy + counter, base, synergy, counter, laneCounter };
 }
 
 export function getSuggestions(
@@ -127,7 +147,8 @@ export function getSuggestions(
   alliedPicks: string[],
   enemyPicks: string[],
   role: Role | null,
-  playerScoreFn?: (championName: string, role: Role) => number
+  playerScoreFn?: (championName: string, role: Role) => number,
+  laneEnemyPick?: string | null
 ): ChampionSuggestion[] {
   const available = allChampions.filter(
     (c) =>
@@ -139,7 +160,7 @@ export function getSuggestions(
     .map((champion) => ({
       champion,
       role,
-      score: computeChampionScore(champion, role, alliedPicks, enemyPicks, allChampions, playerScoreFn),
+      score: computeChampionScore(champion, role, alliedPicks, enemyPicks, allChampions, playerScoreFn, laneEnemyPick),
     }))
     .sort((a, b) => b.score.total - a.score.total);
 }

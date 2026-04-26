@@ -141,11 +141,24 @@ export default function DraftPage({ champions }: Props) {
   const alliedPicks = activeDef.team === "blue" ? bluePicks : redPicks;
   const enemyPicks = activeDef.team === "blue" ? redPicks : bluePicks;
 
+  const laneEnemyPick = useMemo(() => {
+    if (!roleFilter || activeDef.kind !== "pick") return null;
+    const enemyPickIndices = activeDef.team === "blue" ? SLOT_INDICES.redPicks : SLOT_INDICES.bluePicks;
+    for (const i of enemyPickIndices) {
+      const slot = slots[i];
+      if (!slot.championName) continue;
+      if (slot.role === roleFilter) return slot.championName;
+      const champ = champions.find((c) => c.name === slot.championName);
+      if (champ && champ.role.length === 1 && champ.role[0].role === roleFilter) return slot.championName;
+    }
+    return null;
+  }, [roleFilter, activeDef, slots, champions]);
+
   const suggestions = useMemo(() => {
     if (isDraftComplete) return [];
     const raw = activeDef.kind === "ban"
       ? getSuggestions(champions, allTaken, enemyPicks, alliedPicks, roleFilter, activeScoreFn)
-      : getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn);
+      : getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn, laneEnemyPick);
 
     if (activeDef.kind === "pick" && lockedRoles.size > 0) {
       return raw.filter(
@@ -155,7 +168,7 @@ export default function DraftPage({ champions }: Props) {
 
     return raw;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, activeSlot, roleFilter, champions, blueScoreFn, redScoreFn, lockedRoles]);
+  }, [slots, activeSlot, roleFilter, champions, blueScoreFn, redScoreFn, lockedRoles, laneEnemyPick]);
 
   const visibleSuggestions = useMemo(() => {
     if (!search) return suggestions.slice(0, 25);
@@ -467,6 +480,11 @@ export default function DraftPage({ champions }: Props) {
                           {s.score.counter !== 0 && (
                             <span className={scoreClass(s.score.counter)}>
                               Ctr {fmt(s.score.counter)}
+                            </span>
+                          )}
+                          {s.score.laneCounter !== undefined && s.score.laneCounter !== 0 && (
+                            <span className={scoreClass(s.score.laneCounter)}>
+                              Lane {fmt(s.score.laneCounter)}
                             </span>
                           )}
                         </div>
