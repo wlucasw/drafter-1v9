@@ -1346,6 +1346,13 @@ body {
   font-weight: 700;
 }
 
+.role-filter-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
 .ban-hint {
   font-size: 0.78rem;
   color: var(--text-muted);

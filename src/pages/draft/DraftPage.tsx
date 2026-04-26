@@ -102,6 +102,28 @@ export default function DraftPage({ champions }: Props) {
   const isDraftComplete = activeSlot >= DRAFT_SEQUENCE.length;
   const activeScoreFn = activeDef.team === "blue" ? (activeDef.kind !== "ban" ? blueScoreFn : redScoreFn) : (activeDef.kind !== "ban" ? redScoreFn : blueScoreFn);
 
+  const lockedRoles = useMemo(() => {
+    const def = DRAFT_SEQUENCE[activeSlot] ?? DRAFT_SEQUENCE[19];
+    // picks: locked = active team's filled single-role slots (role already covered)
+    // bans:  locked = opponent's filled single-role slots (no point banning a role already taken)
+    const relevantTeam = def.kind === "pick"
+      ? def.team
+      : def.team === "blue" ? "red" : "blue";
+    const teamPickIndices = relevantTeam === "blue" ? SLOT_INDICES.bluePicks : SLOT_INDICES.redPicks;
+    const locked = new Set<Role>();
+    for (const i of teamPickIndices) {
+      const champName = slots[i].championName;
+      if (!champName) continue;
+      const champ = champions.find((c) => c.name === champName);
+      if (champ && champ.role.length === 1) locked.add(champ.role[0].role);
+    }
+    return locked;
+  }, [activeSlot, slots, champions]);
+
+  useEffect(() => {
+    if (roleFilter && lockedRoles.has(roleFilter)) setRoleFilter(null);
+  }, [lockedRoles, roleFilter]);
+
   const allTaken = [
     ...slots
       .map((s, i) => (i === activeSlot ? null : s.championName))
@@ -121,12 +143,19 @@ export default function DraftPage({ champions }: Props) {
 
   const suggestions = useMemo(() => {
     if (isDraftComplete) return [];
-    if (activeDef.kind === "ban") {
-      return getSuggestions(champions, allTaken, enemyPicks, alliedPicks, roleFilter, activeScoreFn);
+    const raw = activeDef.kind === "ban"
+      ? getSuggestions(champions, allTaken, enemyPicks, alliedPicks, roleFilter, activeScoreFn)
+      : getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn);
+
+    if (activeDef.kind === "pick" && lockedRoles.size > 0) {
+      return raw.filter(
+        (s) => s.champion.role.length !== 1 || !lockedRoles.has(s.champion.role[0].role)
+      );
     }
-    return getSuggestions(champions, allTaken, alliedPicks, enemyPicks, roleFilter, activeScoreFn);
+
+    return raw;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, activeSlot, roleFilter, champions, blueScoreFn, redScoreFn]);
+  }, [slots, activeSlot, roleFilter, champions, blueScoreFn, redScoreFn, lockedRoles]);
 
   const visibleSuggestions = useMemo(() => {
     if (!search) return suggestions.slice(0, 25);
@@ -231,6 +260,8 @@ export default function DraftPage({ champions }: Props) {
     const slot = slots[slotIndex];
     const isActive = slotIndex === activeSlot;
     const team = DRAFT_SEQUENCE[slotIndex].team;
+    const champ = slot.championName ? champions.find((c) => c.name === slot.championName) : null;
+    const displayRole = slot.role ?? (champ?.role.length === 1 ? champ.role[0].role : null);
     return (
       <div
         key={slotIndex}
@@ -239,7 +270,7 @@ export default function DraftPage({ champions }: Props) {
       >
         <span className="pick-seq">#{pickNum}</span>
         <div className="pick-info">
-          {slot.role && <span className="pick-role-tag">{slot.role}</span>}
+          {displayRole && <span className="pick-role-tag">{displayRole}</span>}
           <span className="pick-champ-name">
             {slot.championName ?? (isActive ? "← Select" : "—")}
           </span>
@@ -384,6 +415,7 @@ export default function DraftPage({ champions }: Props) {
                       key={r}
                       className={`role-filter-btn${roleFilter === r ? " active" : ""}`}
                       onClick={() => setRoleFilter(roleFilter === r ? null : r)}
+                      disabled={lockedRoles.has(r)}
                     >
                       {r}
                     </button>
